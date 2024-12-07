@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Control Panel</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: #212529;
+            color: white;
+            flex-shrink: 0;
+            padding: 15px;
+        }
+        .sidebar h2 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+        .sidebar a {
+            color: white;
+            text-decoration: none;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+        }
+        .sidebar a i {
+            margin-right: 10px;
+        }
+        .sidebar a.active, .sidebar a:hover {
+            background-color: #007bff;
+        }
+
+        .content {
+            flex: 1;
+            overflow: hidden;
+        }
+        #robot-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        footer {
+            margin-top: auto;
+            font-size: 14px;
+            color: #ffffff;
+        }
+        .section-title {
+            margin-top: 15px;
+            font-size: 1.2em;
+            color: #adb5bd;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar para pantallas pequeñas -->
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark d-md-none">
+        <a class="navbar-brand" href="#">Control Panel</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#mobileMenu"
+                aria-controls="mobileMenu" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="mobileMenu">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="loadDashboard()">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="loadRobot('/reservations')">
+                        <i class="fas fa-calendar-alt"></i> Reservations
+                    </a>
+                </li>
+                <div class="dropdown-divider"></div>
+                
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="loadRobot('http://14.10.2.192:8069/arm%20controll')">
+                        <i class="fas fa-robot"></i> Arm Robot
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="loadRobot('http://14.10.2.192:8070')">
+                        <i class="fas fa-user-astronaut"></i> Pepper Robot Avatar
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" onclick="loadRobot('http://14.10.2.192:8066')">
+                        <i class="fas fa-dog"></i> Dog Robot
+                    </a>
+                </li>
+                
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Layout principal con sidebar visible en escritorio -->
+    <div class="d-flex flex-row" style="height: calc(100vh - 0px);">
+        <!-- Sidebar: visible en pantallas medianas o mayores -->
+        <div class="sidebar d-none d-md-flex flex-column">
+            <h2>Control Panel</h2>
+            <div class="section-title">Main</div>
+            <a href="#" onclick="loadDashboard()" id="dashboard-link"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a href="#" onclick="loadRobot('/reservations')" id="reservations-link"><i class="fas fa-calendar-alt"></i> Reservations</a>
+            <hr>
+            <a href="#" onclick="loadRobot('http://14.10.2.192:8069/arm%20controll')" id="arm-robot-link"><i class="fas fa-robot"></i> Arm Robot</a>
+            <a href="#" onclick="loadRobot('http://14.10.2.192:8070')" id="pepper-avatar-link"><i class="fas fa-user-astronaut"></i> Pepper Robot Avatar</a>
+            <a href="#" onclick="loadRobot('http://14.10.2.192:8066')" id="dog-robot-link"><i class="fas fa-dog"></i> Dog Robot</a>
+            <footer>&copy; 2024 Robot Control</footer>
+        </div>
+
+        <!-- Contenido principal con iframe -->
+        <div class="content">
+            <iframe id="robot-frame" src="/dashboard"></iframe>
+        </div>
+    </div>
+
+    <!-- Scripts de Bootstrap -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        function loadDashboard() {
+            const iframe = document.getElementById('robot-frame');
+            iframe.src = '/dashboard';
+            setActiveLink('dashboard-link');
+        }
+
+        function loadRobot(url) {
+            const iframe = document.getElementById('robot-frame');
+            iframe.src = url;
+            // Actualizar links activos
+            const urlToLink = {
+                '/reservations': 'reservations-link',
+                'http://14.10.2.192:8069/arm%20controll': 'arm-robot-link',
+                'http://14.10.2.192:8070': 'pepper-avatar-link',
+                'http://14.10.2.192:8066': 'dog-robot-link'
+            };
+            if (urlToLink[url]) setActiveLink(urlToLink[url]);
+        }
+
+        function setActiveLink(activeId) {
+            const allLinks = document.querySelectorAll('.sidebar a');
+            allLinks.forEach(link => link.classList.remove('active'));
+            const activeLink = document.getElementById(activeId);
+            if (activeLink) activeLink.classList.add('active');
+        }
+
+        // Por defecto, activo el dashboard
+        setActiveLink('dashboard-link');
+    </script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+{% extends "layout.html" %}
+
+{% block sidebar %}
+<div class="list-group">
+    <a href="/robot/pepper" class="list-group-item list-group-item-action active">Pepper</a>
+    <a href="/robot/arm" class="list-group-item list-group-item-action">Brazo Robot</a>
+    <a href="/robot/dog" class="list-group-item list-group-item-action">Perro Robot</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>Control de Pepper</h1>
+
+<!-- Estado del Sistema -->
+<div class="card mb-3">
+    <div class="card-header">Estado del Sistema</div>
+    <div class="card-body">
+        <p><strong>Batería:</strong> 93%</p>
+        <p><strong>Conexión:</strong> OK</p>
+        <p><strong>Temperatura:</strong> Normal</p>
+    </div>
+</div>
+
+<!-- Video en Vivo -->
+<div class="card mb-3">
+    <div class="card-header">Video en Vivo</div>
+    <div class="card-body">
+        <img src="http://14.10.2.192:8070/video_feed" class="img-fluid" alt="Video Feed">
+    </div>
+</div>
+
+<!-- Preset Actions -->
+<div class="card mb-3">
+    <div class="card-header">Acciones Predefinidas</div>
+    <div class="card-body">
+        <button class="btn btn-success" onclick="performAction('greet')">Greet</button>
+        <button class="btn btn-info" onclick="performAction('presentation')">Presentation</button>
+        <button class="btn btn-secondary" onclick="performAction('home')">Home</button>
+    </div>
+</div>
+
+<!-- Texto a Voz -->
+<div class="card mb-3">
+    <div class="card-header">Texto a Voz</div>
+    <div class="card-body">
+        <input type="text" id="ttsText" placeholder="Escribe algo" class="form-control mb-2">
+        <button class="btn btn-primary" onclick="sayText()">Hablar</button>
+    </div>
+</div>
+
+<!-- Control de Movimiento -->
+<div class="card mb-3">
+    <div class="card-header">Control de Movimiento</div>
+    <div class="card-body">
+        <h5>Head</h5>
+        <div class="mb-2">
+            <label for="HeadYawSlider">Yaw</label>
+            <input type="range" id="HeadYawSlider" min="-2.0857" max="2.0857" step="0.01" value="0" 
+                oninput="syncJointSlider('HeadYaw', this.value)" class="form-control-range">
+            <button class="btn btn-secondary" onclick="moveJoint('HeadYaw', -0.1)">←</button>
+            <button class="btn btn-secondary" onclick="moveJoint('HeadYaw', 0.1)">→</button>
+        </div>
+        <div class="mb-2">
+            <label for="HeadPitchSlider">Pitch</label>
+            <input type="range" id="HeadPitchSlider" min="-2.0857" max="2.0857" step="0.01" value="0"
+                oninput="syncJointSlider('HeadPitch', this.value)" class="form-control-range">
+            <button class="btn btn-secondary" onclick="moveJoint('HeadPitch', -0.1)">↓</button>
+            <button class="btn btn-secondary" onclick="moveJoint('HeadPitch', 0.1)">↑</button>
+        </div>
+
+        <h5>Right Arm</h5>
+        <div class="mb-2">
+            <label for="RShoulderPitchSlider">Shoulder Pitch</label>
+            <input type="range" id="RShoulderPitchSlider" min="-2.0857" max="2.0857" step="0.01" value="1.5" 
+                oninput="syncJointSlider('RShoulderPitch', this.value)" class="form-control-range">
+            <button class="btn btn-secondary" onclick="moveJoint('RShoulderPitch', -0.1)">↑</button>
+            <button class="btn btn-secondary" onclick="moveJoint('RShoulderPitch', 0.1)">↓</button>
+        </div>
+        <div class="mb-2">
+            <label for="RElbowYawSlider">Elbow Yaw</label>
+            <input type="range" id="RElbowYawSlider" min="-2.0857" max="2.0857" step="0.01" value="1.0" 
+                oninput="syncJointSlider('RElbowYaw', this.value)" class="form-control-range">
+            <button class="btn btn-secondary" onclick="moveJoint('RElbowYaw', -0.1)">←</button>
+            <button class="btn btn-secondary" onclick="moveJoint('RElbowYaw', 0.1)">→</button>
+        </div>
+
+        <h5>Left Arm</h5>
+        <div class="mb-2">
+            <label for="LShoulderPitchSlider">Shoulder Pitch</label>
+            <input type="range" id="LShoulderPitchSlider" min="-2.0857" max="2.0857" step="0.01" value="1.5" 
+                oninput="syncJointSlider('LShoulderPitch', this.value)" class="form-control-range">
+            <button class="btn btn-secondary" onclick="moveJoint('LShoulderPitch', -0.1)">↑</button>
+            <button class="btn btn-secondary" onclick="moveJoint('LShoulderPitch', 0.1)">↓</button>
+        </div>
+        <div class="mb-2">
+            <label for="LElbowYawSlider">Elbow Yaw</label>
+            <input type="range" id="LElbowYawSlider" min="-2.0857" max="2.0857" step="0.01" value="-1.0" 
+                oninput="syncJointSlider('LElbowYaw', this.value)" class="form-control-range">
+            <button class="btn btn-secondary" onclick="moveJoint('LElbowYaw', -0.1)">←</button>
+            <button class="btn btn-secondary" onclick="moveJoint('LElbowYaw', 0.1)">→</button>
+        </div>
+    </div>
+</div>
+
+<!-- Audio Streaming -->
+<div class="card mb-3">
+    <div class="card-header">Audio</div>
+    <div class="card-body">
+        <button class="btn btn-primary" onclick="startAudio()">Iniciar Audio</button>
+        <button class="btn btn-danger" onclick="stopAudio()">Detener Audio</button>
+        <audio id="audioPlayer" controls autoplay class="w-100 mt-3"></audio>
+    </div>
+</div>
+
+<script>
+    function performAction(action) {
+        fetch('http://14.10.2.192:8070/perform_action', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action })
+        }).catch(console.error);
+    }
+
+    function sayText() {
+        const text = document.getElementById('ttsText').value;
+        fetch('http://14.10.2.192:8070/say', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text })
+        }).catch(console.error);
+    }
+
+    function moveJoint(joint, delta) {
+        const slider = document.getElementById(`${joint}Slider`);
+        if (slider) {
+            const newValue = parseFloat(slider.value) + delta;
+            slider.value = newValue.toFixed(2);
+            syncJointSlider(joint, newValue);
+        }
+    }
+
+    function syncJointSlider(joint, value) {
+        fetch('http://14.10.2.192:8070/move_joint', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ joint, angle: parseFloat(value), speed: 0.2 })
+        }).catch(console.error);
+    }
+
+    let audioPlayer = document.getElementById("audioPlayer");
+    let audioStreaming = false;
+
+    function startAudio() {
+        if (audioStreaming) return;
+        audioPlayer.src = "http://14.10.2.192:8070/audio_feed";
+        audioPlayer.play().then(() => {
+            audioStreaming = true;
+        }).catch(console.error);
+    }
+
+    function stopAudio() {
+        if (!audioStreaming) return;
+        audioPlayer.pause();
+        audioPlayer.src = "";
+        fetch("http://14.10.2.192:8070/stop_audio", { method: "POST" }).then(() => {
+            audioStreaming = false;
+        }).catch(console.error);
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservations - Robot Control Panel</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .container {
+            padding: 20px;
+        }
+        .title-container {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .title-container h1 {
+            font-size: 3em;
+            font-weight: bold;
+            color: #343a40;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .btn-primary {
+            width: 100%;
+        }
+        .reservations-list {
+            margin-top: 40px;
+        }
+        .reservations-list table {
+            width: 100%;
+            background-color: #ffffff;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .reservations-list table th, .reservations-list table td {
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+        .reservations-list table th {
+            background-color: #007bff;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title-container">
+            <h1>Reservations</h1>
+        </div>
+        <form id="reservation-form">
+            <div class="form-group">
+                <label for="robot-select">Select Robot:</label>
+                <select id="robot-select" class="form-control">
+                    <option value="arm-robot">Arm Robot</option>
+                    <option value="dog-robot">Dog Robot</option>
+                    <option value="pepper-avatar">Pepper Robot Avatar</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="date-select">Select Date:</label>
+                <input type="date" id="date-select" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="time-select">Select Time:</label>
+                <input type="time" id="time-select" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="duration-select">Select Duration:</label>
+                <select id="duration-select" class="form-control">
+                    <option value="30 minutes">30 minutes</option>
+                    <option value="1 hour">1 hour</option>
+                    <option value="2 hours">2 hours</option>
+                </select>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="makeReservation()">Make Reservation</button>
+        </form>
+        <div class="reservations-list">
+            <h2>Upcoming Reservations</h2>
+            <table id="reservations-table">
+                <thead>
+                    <tr>
+                        <th>Robot</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Duration</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Reservations will be dynamically added here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function makeReservation() {
+            const robot = document.getElementById('robot-select').value;
+            const date = document.getElementById('date-select').value;
+            const time = document.getElementById('time-select').value;
+            const duration = document.getElementById('duration-select').value;
+
+            if (robot && date && time && duration) {
+                const table = document.getElementById('reservations-table').getElementsByTagName('tbody')[0];
+                const newRow = table.insertRow();
+
+                const robotCell = newRow.insertCell(0);
+                const dateCell = newRow.insertCell(1);
+                const timeCell = newRow.insertCell(2);
+                const durationCell = newRow.insertCell(3);
+
+                robotCell.textContent = robot;
+                dateCell.textContent = date;
+                timeCell.textContent = time;
+                durationCell.textContent = duration;
+
+                alert('Reservation successfully made!');
+            } else {
+                alert('Please fill in all fields to make a reservation.');
+            }
+        }
+    </script>
+</body>
+</html>

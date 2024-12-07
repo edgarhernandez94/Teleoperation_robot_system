@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Robot Control Panel</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .container {
+            padding: 20px;
+        }
+        .title-container {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .title-container h1 {
+            font-size: 3em;
+            font-weight: bold;
+            color: #343a40;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .robot-cards-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+        .robot-card {
+            width: 300px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            transition: transform 0.3s;
+            background-color: #ffffff;
+        }
+        .robot-card:hover {
+            transform: translateY(-10px);
+        }
+        .robot-card img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 15px 15px 0 0;
+        }
+        .robot-card-body {
+            padding: 20px;
+            text-align: center;
+        }
+        .robot-card-title {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: #007bff;
+            font-weight: bold;
+        }
+        .robot-card p {
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title-container">
+            <h1>Control Panel</h1>
+        </div>
+        <div class="robot-cards-container">
+            <!-- Arm Robot Card -->
+            <div class="card robot-card">
+                <img src="/static/assets/armrobot.jpg" alt="Arm Robot">
+                <div class="robot-card-body">
+                    <h5 class="robot-card-title">Arm Robot</h5>
+                    <p>Control of the robotic arm.</p>
+                    <a href="#" class="btn btn-primary" onclick="window.parent.loadRobot('http://14.10.2.192:8069/arm%20controll')">Access</a>
+                </div>
+            </div>
+            
+            <!-- Pepper Robot Card -->
+            <div class="card robot-card">
+                <img src="/static/assets/pepper.jpg" alt="Pepper Robot">
+                <div class="robot-card-body">
+                    <h5 class="robot-card-title">Pepper Robot Avatar</h5>
+                    <p>Control and monitoring of the Pepper Robot Avatar.</p>
+                    <a href="#" class="btn btn-primary" onclick="window.parent.loadRobot('http://14.10.2.192:8070')">Access</a>
+                </div>
+            </div>
+            <!-- Dog Robot Card -->
+            <div class="card robot-card">
+                <img src="/static/assets/go2.png" alt="Dog Robot">
+                <div class="robot-card-body">
+                    <h5 class="robot-card-title">Dog Robot</h5>
+                    <p>Control and monitoring of the Dog Robot.</p>
+                    <a href="#" class="btn btn-primary" onclick="window.parent.loadRobot('http://14.10.2.192:8066')">Access</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function loadRobot(url) {
+            window.location.href = url;
+        }
+    </script>
+</body>
+</html>
+    
