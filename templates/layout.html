@@ -116,6 +116,11 @@
             <a href="#" onclick="loadRobot('http://14.10.2.192:8069/arm%20controll')" id="arm-robot-link"><i class="fas fa-robot"></i> Arm Robot</a>
             <a href="#" onclick="loadRobot('http://14.10.2.192:8070')" id="pepper-avatar-link"><i class="fas fa-user-astronaut"></i> Pepper Robot Avatar</a>
             <a href="#" onclick="loadRobot('http://14.10.2.192:8066')" id="dog-robot-link"><i class="fas fa-dog"></i> Dog Robot</a>
+            <!-- ... dentro de layout.html, en la sidebar ... -->
+            <footer style="margin-top: auto;">
+                &copy; 2024 Robot Control<br>
+                <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-light mt-2">Logout</a>
+            </footer>
             <footer>&copy; 2024 Robot Control</footer>
         </div>
 

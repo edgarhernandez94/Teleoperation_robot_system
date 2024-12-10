@@ -5,107 +5,183 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Robot Control Panel</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Íconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <style>
         body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
             background-color: #f5f5f5;
-        }
-        .container {
+            margin: 0;
             padding: 20px;
+            font-family: Arial, sans-serif;
         }
-        .title-container {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        .title-container h1 {
-            font-size: 3em;
-            font-weight: bold;
-            color: #343a40;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        .robot-cards-container {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 30px;
-        }
-        .robot-card {
-            width: 300px;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        .card {
             border-radius: 15px;
-            transition: transform 0.3s;
-            background-color: #ffffff;
+            border: none;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
         }
-        .robot-card:hover {
-            transform: translateY(-10px);
+        .card h2, .card h5 {
+            font-weight: bold;
+        }
+        .action-buttons .btn {
+            margin-right: 10px;
+            margin-bottom: 10px;
         }
         .robot-card img {
             width: 100%;
-            height: 180px;
+            height: 150px;
             object-fit: cover;
-            border-radius: 15px 15px 0 0;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
         }
-        .robot-card-body {
+        .robot-card .robot-card-body {
             padding: 20px;
             text-align: center;
         }
-        .robot-card-title {
-            font-size: 1.5em;
-            margin-bottom: 10px;
+        .robot-card .robot-card-title {
+            font-size: 1.2em;
             color: #007bff;
             font-weight: bold;
         }
-        .robot-card p {
+        .chart-wrapper {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .session-history {
+            font-size: 0.9em;
             color: #6c757d;
-            margin-bottom: 20px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        @media (max-width: 768px) {
+            .chart-wrapper {
+                width: 150px;
+                height: 150px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="title-container">
-            <h1>Control Panel</h1>
+
+<div class="container-fluid">
+    <!-- Row 1: Greeting & Next Appointment -->
+    <div class="row">
+        <div class="col-12 col-lg-8">
+            <div class="card p-4">
+                <h2>Hi {{ current_user.first_name }}, what would you like to do today?</h2>
+                <div class="action-buttons mt-3">
+                    <button class="btn btn-outline-primary">
+                        <i class="fas fa-chart-line mr-1"></i> Review task performance
+                    </button>
+                    <button class="btn btn-outline-primary" onclick="window.parent.loadRobot('/reservations')">
+                        <i class="fas fa-calendar-check mr-1"></i> Schedule a session
+                    </button>
+                </div>
+            </div>
         </div>
-        <div class="robot-cards-container">
-            <!-- Arm Robot Card -->
-            <div class="card robot-card">
-                <img src="/static/assets/armrobot.jpg" alt="Arm Robot">
-                <div class="robot-card-body">
-                    <h5 class="robot-card-title">Arm Robot</h5>
-                    <p>Control of the robotic arm.</p>
-                    <a href="#" class="btn btn-primary" onclick="window.parent.loadRobot('http://14.10.2.192:8069/arm%20controll')">Access</a>
-                </div>
-            </div>
-            
-            <!-- Pepper Robot Card -->
-            <div class="card robot-card">
-                <img src="/static/assets/pepper.jpg" alt="Pepper Robot">
-                <div class="robot-card-body">
-                    <h5 class="robot-card-title">Pepper Robot Avatar</h5>
-                    <p>Control and monitoring of the Pepper Robot Avatar.</p>
-                    <a href="#" class="btn btn-primary" onclick="window.parent.loadRobot('http://14.10.2.192:8070')">Access</a>
-                </div>
-            </div>
-            <!-- Dog Robot Card -->
-            <div class="card robot-card">
-                <img src="/static/assets/go2.png" alt="Dog Robot">
-                <div class="robot-card-body">
-                    <h5 class="robot-card-title">Dog Robot</h5>
-                    <p>Control and monitoring of the Dog Robot.</p>
-                    <a href="#" class="btn btn-primary" onclick="window.parent.loadRobot('http://14.10.2.192:8066')">Access</a>
-                </div>
+        <div class="col-12 col-lg-4">
+            <div class="card text-center p-4">
+                <h5>Next Session Appointment</h5>
+                {% if next_date_str == "No upcoming sessions" %}
+                    <p><strong>{{ next_date_str }}</strong></p>
+                {% else %}
+                    <p><strong>{{ next_date_str }}</strong></p>
+                    <p>{{ next_robot|replace('-', ' ')|title }}</p>
+                    <i class="fas fa-clock fa-2x" style="color:#007bff;"></i>
+                {% endif %}
             </div>
         </div>
     </div>
 
-    <script>
-        function loadRobot(url) {
-            window.location.href = url;
+    <!-- Row 2: Robots Cards & Usage Chart -->
+    <div class="row">
+        <div class="col-12 col-lg-8">
+            <div class="d-flex flex-wrap justify-content-center">
+                <!-- Arm Robot Card -->
+                <div class="card robot-card m-2" style="width: 250px;">
+                    <img src="/static/assets/armrobot.jpg" alt="Arm Robot">
+                    <div class="robot-card-body">
+                        <h5 class="robot-card-title">Arm Robot</h5>
+                        <p>Control of the robotic arm.</p>
+                        <a href="#" class="btn btn-primary" onclick="window.parent.loadRobot('http://14.10.2.192:8069/arm%20controll')">Access</a>
+                    </div>
+                </div>
+
+                <!-- Pepper Robot Card -->
+                <div class="card robot-card m-2" style="width: 250px;">
+                    <img src="/static/assets/pepper.jpg" alt="Pepper Robot">
+                    <div class="robot-card-body">
+                        <h5 class="robot-card-title">Pepper Robot Avatar</h5>
+                        <p>Control and monitoring of the Pepper Robot Avatar.</p>
+                        <a href="#" class="btn btn-primary" onclick="window.parent.loadRobot('http://14.10.2.192:8070')">Access</a>
+                    </div>
+                </div>
+
+                <!-- Dog Robot Card -->
+                <div class="card robot-card m-2" style="width: 250px;">
+                    <img src="/static/assets/go2.png" alt="Dog Robot">
+                    <div class="robot-card-body">
+                        <h5 class="robot-card-title">Dog Robot</h5>
+                        <p>Control and monitoring of the Dog Robot.</p>
+                        <a href="#" class="btn btn-primary" onclick="window.parent.loadRobot('http://14.10.2.192:8066')">Access</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Uso del Robot (Gráfico) y Sessions in History -->
+        <div class="col-12 col-lg-4">
+            <div class="card p-4 text-center">
+                <h5>Robot Usage</h5>
+                <div class="chart-wrapper mx-auto">
+                    <canvas id="usageChart"></canvas>
+                </div>
+                <div class="session-history mt-3">
+                    <!-- Aquí haremos que las sessions sean reales -->
+                    <p><strong>Sessions in History:</strong><br>
+                        Arm: {{ arm_count }} sessions ({{ arm_usage/60 if arm_usage else 0 }} hrs) <br>
+                        Pepper: {{ pepper_count }} sessions ({{ pepper_usage/60 if pepper_usage else 0 }} hrs) <br>
+                        Dog: {{ dog_count }} sessions ({{ dog_usage/60 if dog_usage else 0 }} hrs)</p>                       
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const armUsage = {{ arm_usage }};
+    const pepperUsage = {{ pepper_usage }};
+    const dogUsage = {{ dog_usage }};
+
+    const ctx = document.getElementById('usageChart').getContext('2d');
+    const usageChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Arm Robot', 'Pepper', 'Dog'],
+            datasets: [{
+                data: [armUsage, pepperUsage, dogUsage],
+                backgroundColor: ['#007bff', '#28a745', '#ffc107'],
+                hoverBackgroundColor: ['#0056b3', '#1e7e34', '#e0a800']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
         }
-    </script>
+    });
+</script>
 </body>
 </html>
-    

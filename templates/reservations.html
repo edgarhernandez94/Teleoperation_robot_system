@@ -32,23 +32,58 @@
         .btn-primary {
             width: 100%;
         }
-        .reservations-list {
+        .reservations-section {
             margin-top: 40px;
+        }
+        .reservations-section h2 {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            color: #343a40;
         }
         .reservations-list table {
             width: 100%;
             background-color: #ffffff;
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
             border-radius: 10px;
+            overflow: hidden;
         }
         .reservations-list table th, .reservations-list table td {
             padding: 15px;
             text-align: center;
             border-bottom: 1px solid #ddd;
+            white-space: nowrap;
         }
         .reservations-list table th {
             background-color: #007bff;
             color: white;
+        }
+        .no-reservations {
+            text-align: center;
+            font-size: 1.2em;
+            color: #6c757d;
+            margin-top: 20px;
+        }
+        @media (max-width: 768px) {
+            .reservations-list table, .reservations-list table thead, .reservations-list table tbody, .reservations-list table th, .reservations-list table td, .reservations-list table tr {
+                display: block;
+            }
+            .reservations-list table thead {
+                display: none;
+            }
+            .reservations-list table td {
+                border: none;
+                position: relative;
+                padding-left: 50%;
+                text-align: left;
+            }
+            .reservations-list table td:before {
+                content: attr(data-label);
+                position: absolute;
+                left: 15px;
+                width: 45%;
+                white-space: nowrap;
+                font-weight: bold;
+            }
         }
     </style>
 </head>
@@ -57,10 +92,10 @@
         <div class="title-container">
             <h1>Reservations</h1>
         </div>
-        <form id="reservation-form">
+        <form id="reservation-form" action="{{ url_for('make_reservation') }}" method="post">
             <div class="form-group">
                 <label for="robot-select">Select Robot:</label>
-                <select id="robot-select" class="form-control">
+                <select id="robot-select" name="robot" class="form-control">
                     <option value="arm-robot">Arm Robot</option>
                     <option value="dog-robot">Dog Robot</option>
                     <option value="pepper-avatar">Pepper Robot Avatar</option>
@@ -68,66 +103,82 @@
             </div>
             <div class="form-group">
                 <label for="date-select">Select Date:</label>
-                <input type="date" id="date-select" class="form-control">
+                <input type="date" id="date-select" name="date" class="form-control">
             </div>
             <div class="form-group">
                 <label for="time-select">Select Time:</label>
-                <input type="time" id="time-select" class="form-control">
+                <input type="time" id="time-select" name="time" class="form-control">
             </div>
             <div class="form-group">
                 <label for="duration-select">Select Duration:</label>
-                <select id="duration-select" class="form-control">
+                <select id="duration-select" name="duration" class="form-control">
                     <option value="30 minutes">30 minutes</option>
                     <option value="1 hour">1 hour</option>
                     <option value="2 hours">2 hours</option>
                 </select>
             </div>
-            <button type="button" class="btn btn-primary" onclick="makeReservation()">Make Reservation</button>
+            <button type="submit" class="btn btn-primary">Make Reservation</button>
         </form>
-        <div class="reservations-list">
+
+        <div class="reservations-section">
             <h2>Upcoming Reservations</h2>
-            <table id="reservations-table">
-                <thead>
-                    <tr>
-                        <th>Robot</th>
-                        <th>Date</th>
-                        <th>Time</th>
-                        <th>Duration</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Reservations will be dynamically added here -->
-                </tbody>
-            </table>
+            {% if upcoming_reservations %}
+            <div class="reservations-list">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Robot</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for res in upcoming_reservations %}
+                        <tr>
+                            <td data-label="Robot">{{ res.robot }}</td>
+                            <td data-label="Date">{{ res.start_datetime.strftime("%Y-%m-%d") }}</td>
+                            <td data-label="Time">{{ res.start_datetime.strftime("%H:%M") }}</td>
+                            <td data-label="Duration">{{ res.duration }} minutes</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="no-reservations">No upcoming reservations.</p>
+            {% endif %}
+        </div>
+
+        <div class="reservations-section">
+            <h2>Past Sessions</h2>
+            {% if past_reservations %}
+            <div class="reservations-list">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Robot</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for res in past_reservations %}
+                        <tr>
+                            <td data-label="Robot">{{ res.robot }}</td>
+                            <td data-label="Date">{{ res.start_datetime.strftime("%Y-%m-%d") }}</td>
+                            <td data-label="Time">{{ res.start_datetime.strftime("%H:%M") }}</td>
+                            <td data-label="Duration">{{ res.duration }} minutes</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="no-reservations">No past sessions.</p>
+            {% endif %}
         </div>
     </div>
-
-    <script>
-        function makeReservation() {
-            const robot = document.getElementById('robot-select').value;
-            const date = document.getElementById('date-select').value;
-            const time = document.getElementById('time-select').value;
-            const duration = document.getElementById('duration-select').value;
-
-            if (robot && date && time && duration) {
-                const table = document.getElementById('reservations-table').getElementsByTagName('tbody')[0];
-                const newRow = table.insertRow();
-
-                const robotCell = newRow.insertCell(0);
-                const dateCell = newRow.insertCell(1);
-                const timeCell = newRow.insertCell(2);
-                const durationCell = newRow.insertCell(3);
-
-                robotCell.textContent = robot;
-                dateCell.textContent = date;
-                timeCell.textContent = time;
-                durationCell.textContent = duration;
-
-                alert('Reservation successfully made!');
-            } else {
-                alert('Please fill in all fields to make a reservation.');
-            }
-        }
-    </script>
 </body>
 </html>
