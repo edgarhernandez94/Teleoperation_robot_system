@@ -64,6 +64,7 @@
 </head>
 <body>
     <!-- Navbar para pantallas pequeñas -->
+    <!-- Navbar para pantallas pequeñas -->
     <nav class="navbar navbar-expand-md navbar-dark bg-dark d-md-none">
         <a class="navbar-brand" href="#">Control Panel</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#mobileMenu"
@@ -74,45 +75,56 @@
         <div class="collapse navbar-collapse" id="mobileMenu">
             <ul class="navbar-nav mr-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="#" onclick="loadDashboard()">
+                    <a class="nav-link" href="#" onclick="loadDashboard()" id="mobile-dashboard-link">
                         <i class="fas fa-tachometer-alt"></i> Dashboard
                     </a>
+                </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#" onclick="loadRobot('/reservations')">
+                    <a class="nav-link" href="#" onclick="loadRobot('/reservations')" id="mobile-reservations-link">
                         <i class="fas fa-calendar-alt"></i> Reservations
                     </a>
                 </li>
                 <div class="dropdown-divider"></div>
-                
-                <li class="nav-item">
+
+                <!-- Robots solo si están habilitados -->
+                {% if "arm-robot" in current_user.allowed_robots %}
+                <li class="nav-item" id="mobile-arm-robot-link">
                     <a class="nav-link" href="#" onclick="loadRobot('http://14.10.2.192:8069/arm%20controll')">
                         <i class="fas fa-robot"></i> Arm Robot
                     </a>
                 </li>
-                <li class="nav-item">
+                {% endif %}
+
+                {% if "pepper-avatar" in current_user.allowed_robots %}
+                <li class="nav-item" id="mobile-pepper-avatar-link">
                     <a class="nav-link" href="#" onclick="loadRobot('http://14.10.2.192:8070')">
                         <i class="fas fa-user-astronaut"></i> Pepper Robot Avatar
                     </a>
                 </li>
-                <li class="nav-item">
+                {% endif %}
+
+                {% if "dog-robot" in current_user.allowed_robots %}
+                <li class="nav-item" id="mobile-dog-robot-link">
                     <a class="nav-link" href="#" onclick="loadRobot('http://14.10.2.192:8066')">
                         <i class="fas fa-dog"></i> Dog Robot
                     </a>
                 </li>
-                    <!-- Aquí puedes agregar la sección de administración, verificando el rol. -->
+                {% endif %}
+
+                <!-- Sección de administración si es admin -->
                 {% if current_user.role == 'admin' %}
                 <hr>
                 <div class="section-title" style="color: #adb5bd; padding: 5px 0 5px 10px;">Administration</div>
-                <li class="nav-item">
+                <li class="nav-item" id="mobile-manage-users-link">
                     <a class="nav-link" href="#" onclick="loadRobot('/manage_users')">
                         <i class="fas fa-users-cog"></i> Manage Users
                     </a>
                 </li>
                 {% endif %}
-
             </ul>
         </div>
     </nav>
+
 
     <!-- Layout principal con sidebar visible en escritorio -->
     <div class="d-flex flex-row" style="height: calc(100vh - 0px);">
@@ -238,18 +250,32 @@
         .then(data => {
             const allowed = data.allowed_robots || [];
             
-            // Seleccionar los links
+            // Desktop sidebar links
             const armLink = document.getElementById('arm-robot-link');
             const pepperLink = document.getElementById('pepper-avatar-link');
             const dogLink = document.getElementById('dog-robot-link');
     
-            // Mostrar u ocultar según allowed_robots
             if (armLink) armLink.style.display = allowed.includes('arm-robot') ? 'block' : 'none';
             if (pepperLink) pepperLink.style.display = allowed.includes('pepper-avatar') ? 'block' : 'none';
             if (dogLink) dogLink.style.display = allowed.includes('dog-robot') ? 'block' : 'none';
+    
+            // Mobile sidebar links
+            const mobileArmLink = document.getElementById('mobile-arm-robot-link');
+            const mobilePepperLink = document.getElementById('mobile-pepper-avatar-link');
+            const mobileDogLink = document.getElementById('mobile-dog-robot-link');
+    
+            if (mobileArmLink) mobileArmLink.style.display = allowed.includes('arm-robot') ? 'block' : 'none';
+            if (mobilePepperLink) mobilePepperLink.style.display = allowed.includes('pepper-avatar') ? 'block' : 'none';
+            if (mobileDogLink) mobileDogLink.style.display = allowed.includes('dog-robot') ? 'block' : 'none';
+    
+            // Si quieres también el enlace de Manage Users en móvil dependiendo del rol admin,
+            // asumimos que el rol no cambia dinámicamente, pero si lo hiciera se puede ocultar igual.
+            // Verifica si el usuario sigue siendo admin:
+            // (Necesitarías un endpoint que devuelva role también, y filtrar aquí, si es necesario).
         });
     }
     </script>
+    
             
 </body>
 </html>
