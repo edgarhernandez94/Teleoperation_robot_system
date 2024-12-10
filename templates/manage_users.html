@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Users</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+      body {
+          background-color: #f8f9fa;
+          padding: 20px;
+          font-family: Arial, sans-serif;
+      }
+      .user-card {
+          border: 1px solid #dee2e6;
+          border-radius: 10px;
+          padding: 20px;
+          margin-bottom: 20px;
+          background-color: #fff;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      }
+    </style>
+</head>
+<body>
+    <h1 class="mb-4">Manage Users</h1>
+    <div class="container">
+        <div class="row">
+            {% for user in all_users %}
+            <div class="col-md-4">
+                <div class="user-card">
+                    <h5><i class="fas fa-user"></i> {{ user.username }} <span class="badge badge-info">{{ user.role }}</span></h5>
+                    <hr>
+                    <form action="{{ url_for('update_user_robots') }}" method="post">
+                        <input type="hidden" name="user_id" value="{{ user._id }}">
+                        
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" value="arm-robot" 
+                                 id="arm-robot-{{ user._id }}" name="allowed_robots" 
+                                 {% if user.allowed_robots and "arm-robot" in user.allowed_robots %}checked{% endif %}>
+                          <label class="form-check-label" for="arm-robot-{{ user._id }}">Arm Robot</label>
+                        </div>
+                        
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" value="pepper-avatar" 
+                                 id="pepper-avatar-{{ user._id }}" name="allowed_robots" 
+                                 {% if user.allowed_robots and "pepper-avatar" in user.allowed_robots %}checked{% endif %}>
+                          <label class="form-check-label" for="pepper-avatar-{{ user._id }}">Pepper Robot</label>
+                        </div>
+                        
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" value="dog-robot" 
+                                 id="dog-robot-{{ user._id }}" name="allowed_robots" 
+                                 {% if user.allowed_robots and "dog-robot" in user.allowed_robots %}checked{% endif %}>
+                          <label class="form-check-label" for="dog-robot-{{ user._id }}">Dog Robot</label>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-success btn-sm mt-3">Save Changes</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <script>
+        window.onload = function(){
+            // Una vez guardados los cambios, notificar al parent:
+            window.parent.updateSidebar();
+        };
+    </script>
+    <script>
+        // Una vez que la página de manage_users se cargue (por ejemplo tras guardar cambios),
+        // notifica al parent que actualice la barra lateral:
+        window.onload = function(){
+            window.parent.updateSidebar();
+        };
+        </script>
+        
+</body>
+</html>
+
+    

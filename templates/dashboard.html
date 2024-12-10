@@ -110,32 +110,43 @@
                 <!-- Fila de Robot Access Cards -->
                 <div class="row mb-4">
                     <div class="col-lg-4 col-md-6 mb-3">
-                        <div class="card robot-card animate__animated animate__fadeInLeft">
-                            <img src="/static/assets/armrobot.jpg" alt="Arm Robot" class="card-img-top" style="object-fit: cover; height: 200px;">
-                            <div class="card-body text-center">
-                                <h5>Arm Robot</h5>
-                                <p>Control the robotic arm</p>
-                                <a href="http://14.10.2.192:8069/arm%20controll" class="btn btn-primary">Access</a>
-                            </div>
+                        {% if "arm-robot" in current_user.allowed_robots %}
+                    <div class="card robot-card animate__animated animate__fadeInLeft">
+                        <img src="/static/assets/armrobot.jpg" alt="Arm Robot" class="card-img-top" style="object-fit: cover; height: 200px;">
+                        <div class="card-body text-center">
+                            <h5>Arm Robot</h5>
+                            <p>Control the robotic arm</p>
+                            <a href="http://14.10.2.192:8069/arm%20controll" class="btn btn-primary">Access</a>
                         </div>
+                    </div>
+                    {% endif %}
+
                     </div>
                     <div class="col-lg-4 col-md-6 mb-3">
-                        <div class="card robot-card animate__animated animate__fadeInUp">
-                            <img src="/static/assets/pepper.jpg" alt="Pepper Robot" class="card-img-top" style="object-fit: cover; height: 200px;">
-                            <div class="card-body text-center">
-                                <h5>Pepper Robot</h5>
-                                <p>Control Pepper Avatar</p>
-                                <a href="http://14.10.2.192:8070" class="btn btn-primary">Access</a>
-                            </div>
+                        {% if "pepper-avatar" in current_user.allowed_robots %}
+                    <div class="card robot-card animate__animated animate__fadeInUp">
+                        <img src="/static/assets/pepper.jpg" alt="Pepper Robot" class="card-img-top" style="object-fit: cover; height: 200px;">
+                        <div class="card-body text-center">
+                            <h5>Pepper Robot</h5>
+                            <p>Control Pepper Avatar</p>
+                            <a href="http://14.10.2.192:8070" class="btn btn-primary">Access</a>
                         </div>
                     </div>
-                    <div class="card robot-card col-lg-4 col-md-6 mb-3 animate__animated animate__fadeInRight">
-                        <img src="/static/assets/go2.png" alt="Dog Robot" class="card-img-top" style="object-fit: cover; height: 200px;">
+                    {% endif %}
+
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        {% if "dog-robot" in current_user.allowed_robots %}
+                    <div class="card robot-card animate__animated animate__fadeInUp">
+                        <img src="/static/assets/go2.png" alt="Robot dog" class="card-img-top" style="object-fit: cover; height: 200px;">
                         <div class="card-body text-center">
                             <h5>Dog Robot</h5>
                             <p>Control the Dog Robot</p>
                             <a href="http://14.10.2.192:8066" class="btn btn-primary">Access</a>
                         </div>
+                    </div>
+                    {% endif %}
+
                     </div>
                 </div>
             </div>

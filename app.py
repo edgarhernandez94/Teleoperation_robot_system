@@ -1,21 +1,18 @@
-from flask import Flask, render_template, Response, redirect, url_for, request, session, flash
+from flask import Flask, render_template, Response, redirect, url_for, request, session, flash, abort, jsonify
 import cv2
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from pymongo import MongoClient
 from bson.objectid import ObjectId
-from flask import jsonify
 from datetime import datetime, timedelta
-from bson.objectid import ObjectId
 from collections import Counter
 
 # Conexión a MongoDB
 client = MongoClient("mongodb://localhost:27017/")
 db = client['teleoperation_system']  # Nombre de la base de datos
 users_collection = db['users']  # Nombre de la colección
-reservations_collection = db['reservations']  # Crearás esta colección al insertar el primer documento
-
+reservations_collection = db['reservations']
 
 app = Flask(__name__)
 app.secret_key = 'un_clave_secreto_muy_segura'
@@ -27,23 +24,28 @@ login_manager.login_message = 'Please log in to access this page.'
 
 # Clase User para flask-login
 class User(UserMixin):
-    def __init__(self, id_, username):
+    def __init__(self, id_, username, role='user', first_name=''):
         self.id = id_
         self.username = username
+        self.role = role
+        self.first_name = first_name
 
 def get_db_connection():
     conn = sqlite3.connect('users.db')
     conn.row_factory = sqlite3.Row
     return conn
 
-@login_manager.user_loader
-def load_user(user_id):
-    conn = get_db_connection()
-    user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
-    conn.close()
-    if user:
-        return User(id_=user['id'], username=user['username'])
-    return None
+def role_required(required_role):
+    def decorator(f):
+        def wrapper(*args, **kwargs):
+            if not current_user.is_authenticated:
+                return login_manager.unauthorized()
+            if current_user.role != required_role:
+                return abort(403)
+            return f(*args, **kwargs)
+        wrapper.__name__ = f.__name__
+        return wrapper
+    return decorator
 
 def create_users_table():
     conn = get_db_connection()
@@ -79,24 +81,22 @@ def index():
     else:
         return redirect(url_for('login'))
 
-from werkzeug.security import check_password_hash
-from flask_login import login_user
-
-from werkzeug.security import check_password_hash
-from flask_login import login_user
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
 
-        # Buscar usuario en la colección
+        # Buscar usuario en la colección de MongoDB
         user = users_collection.find_one({"username": username})
         if user and check_password_hash(user['password'], password):
-            # Crear una instancia de User para login_user
-            user_obj = User(str(user['_id']), user['username'])
-            user_obj.first_name = user.get('first_name', '')  # Obtener el nombre si existe
+            # Crear una instancia de User con el rol
+            user_obj = User(
+                id_=str(user['_id']),
+                username=user['username'],
+                role=user.get('role', 'user'),
+                first_name=user.get('first_name', '')
+            )
             login_user(user_obj)
             return redirect(url_for('index'))
         else:
@@ -116,7 +116,7 @@ def register():
         occupation = request.form['occupation']
         company = request.form['company']
         country = request.form['country']
-        role = request.form['role']
+        role = request.form['role']  # admin o user
 
         # Verificar si ya existe el usuario
         if users_collection.find_one({"username": username}):
@@ -149,11 +149,6 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-from collections import Counter
-
-from collections import Counter
-
-from collections import Counter
 
 @app.route('/dashboard')
 @login_required
@@ -175,7 +170,6 @@ def dashboard():
     # Obtener todas las sesiones del usuario actual
     sessions = list(reservations_collection.find({"user_id": ObjectId(current_user.id)}))
 
-    # Agrupar sesiones por robot y fecha
     def get_sessions_by_robot(robot_name):
         return [s["start_datetime"].strftime("%Y-%m-%d") for s in sessions if s["robot"] == robot_name]
 
@@ -183,7 +177,6 @@ def dashboard():
     pepper_sessions = get_sessions_by_robot("pepper-avatar")
     dog_sessions = get_sessions_by_robot("dog-robot")
 
-    # Contar sesiones por fecha
     def count_sessions_by_date(sessions):
         return Counter(sessions)
 
@@ -191,7 +184,6 @@ def dashboard():
     pepper_sessions_count = dict(count_sessions_by_date(pepper_sessions) or {})
     dog_sessions_count = dict(count_sessions_by_date(dog_sessions) or {})
 
-    # Continuar con la lógica existente para el uso y duración
     pipeline = [
         {"$match": {"user_id": ObjectId(current_user.id)}},
         {"$group": {"_id": "$robot", "total_duration": {"$sum": "$duration"}, "count_sessions": {"$sum": 1}}}
@@ -209,7 +201,6 @@ def dashboard():
         usage_map[doc['_id']]['duration'] = doc['total_duration']
         usage_map[doc['_id']]['count'] = doc['count_sessions']
 
-    # Asignar datos para cada robot
     arm_usage = usage_map["arm-robot"]["duration"]
     pepper_usage = usage_map["pepper-avatar"]["duration"]
     dog_usage = usage_map["dog-robot"]["duration"]
@@ -217,11 +208,13 @@ def dashboard():
     arm_count = usage_map["arm-robot"]["count"]
     pepper_count = usage_map["pepper-avatar"]["count"]
     dog_count = usage_map["dog-robot"]["count"]
+
     robot_tasks_count = {
-    "Arm Robot": 5,
-    "Pepper Robot Avatar": 3,
-    "Dog Robot": 2
-}
+        "Arm Robot": 5,
+        "Pepper Robot Avatar": 3,
+        "Dog Robot": 2
+    }
+
     return render_template(
         'dashboard.html',
         next_date_str=next_date_str,
@@ -232,11 +225,11 @@ def dashboard():
         arm_count=arm_count,
         pepper_count=pepper_count,
         dog_count=dog_count,
-        arm_sessions_count=arm_sessions_count,  # Contar por fecha
+        arm_sessions_count=arm_sessions_count,
         pepper_sessions_count=pepper_sessions_count,
         dog_sessions_count=dog_sessions_count,
-        robot_tasks_count=robot_tasks_count,  # Add this line
-        )
+        robot_tasks_count=robot_tasks_count,
+    )
 
 @app.route('/pepper')
 @login_required
@@ -263,8 +256,6 @@ def reservations():
     upcoming_reservations = [r for r in user_reservations if r['start_datetime'] >= now]
     past_reservations = [r for r in user_reservations if r['start_datetime'] < now]
 
-    # Si usas check_availability, también asegúrate de definir occupied_spots, checked_robot y checked_date
-    # antes de renderizar, por ejemplo:
     occupied_spots = []
     checked_robot = None
     checked_date = None
@@ -279,7 +270,6 @@ def reservations():
         checked_date=checked_date
     )
 
-
 @app.route('/make_reservation', methods=['POST'])
 @login_required
 def make_reservation():
@@ -288,10 +278,8 @@ def make_reservation():
     time_str = request.form['time']
     duration_str = request.form['duration']
 
-    # Convertir fecha/hora
     start = datetime.strptime(f"{date_str} {time_str}", '%Y-%m-%d %H:%M')
 
-    # Determinar duración en minutos
     if duration_str == '30 minutes':
         dur_minutes = 30
     elif duration_str == '1 hour':
@@ -303,33 +291,11 @@ def make_reservation():
 
     end = start + timedelta(minutes=dur_minutes)
 
-    # Verificar si ya existe una reserva para ese robot que se solape
-    # Criterio: buscar cualquier reserva del mismo robot donde:
-    # existing_start < end AND existing_end > start
-    existing = reservations_collection.find_one({
-        "robot": robot,
-        "$or": [
-            {
-                # Caso 1: Inicio existente antes del fin nuevo y fin existente después del inicio nuevo
-                "start_datetime": {"$lt": end}
-            },
-            # Podemos revisar si hace falta más condiciones
-        ]
-    })
-
-    # Necesitamos filtrar aún más las reservas encontradas:
-    # Mejor usar un pipeline para filtrar con más detalle o hacerlo en Python:
-    # Usamos el match inicial, luego filtramos en Python si existe realmente solapamiento.
-    # Para ello, tendremos que calcular el end de la reserva existente:
-    
     overlapping_reservation = None
     for res in reservations_collection.find({"robot": robot}):
         existing_start = res['start_datetime']
         existing_end = existing_start + timedelta(minutes=res['duration'])
-
-        # Verificar solapamiento:
         if existing_start < end and existing_end > start:
-            # Hay solapamiento
             overlapping_reservation = res
             break
 
@@ -337,7 +303,6 @@ def make_reservation():
         flash("This robot is already reserved at this time. Please choose another time or robot.")
         return redirect(url_for('reservations'))
 
-    # Si no hay solapamiento, insertar la nueva reserva
     reservation_data = {
         "user_id": ObjectId(current_user.id),
         "robot": robot,
@@ -348,6 +313,7 @@ def make_reservation():
     reservations_collection.insert_one(reservation_data)
     flash("Reservation successfully made!")
     return redirect(url_for('reservations'))
+
 @app.route('/check_availability', methods=['POST'])
 @login_required
 def check_availability():
@@ -358,14 +324,12 @@ def check_availability():
         flash("Please select a robot and a date.")
         return redirect(url_for('reservations'))
 
-    # Obtener todas las reservas del usuario para mantener consistencia en la plantilla
     now = datetime.now()
     user_reservations = list(reservations_collection.find({"user_id": ObjectId(current_user.id)}))
     user_reservations.sort(key=lambda r: r['start_datetime'])
     upcoming_reservations = [r for r in user_reservations if r['start_datetime'] >= now]
     past_reservations = [r for r in user_reservations if r['start_datetime'] < now]
 
-    # Filtrar reservas del robot en la fecha dada (para mostrar ocupadas)
     date_obj = datetime.strptime(date_str, '%Y-%m-%d')
     next_day = date_obj + timedelta(days=1)
     query = {
@@ -391,15 +355,11 @@ def check_availability():
 @app.route('/delete_reservation/<reservation_id>', methods=['POST'])
 @login_required
 def delete_reservation(reservation_id):
-    from bson.objectid import ObjectId
-    
-    # Buscamos la reserva para asegurarnos que pertenece al usuario actual
     res = reservations_collection.find_one({"_id": ObjectId(reservation_id), "user_id": ObjectId(current_user.id)})
     if not res:
         flash("Reservation not found or does not belong to you.")
         return redirect(url_for('reservations'))
     
-    # Eliminar la reserva
     reservations_collection.delete_one({"_id": ObjectId(reservation_id)})
     flash("Reservation deleted successfully!")
     return redirect(url_for('reservations'))
@@ -408,14 +368,23 @@ def delete_reservation(reservation_id):
 @login_required
 def video_feed3():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+# IMPORTANTE: Quitar la duplicación de load_user, mantén solo este que carga desde Mongo.
 @login_manager.user_loader
 def load_user(user_id):
     user = users_collection.find_one({"_id": ObjectId(user_id)})
     if user:
-        user_obj = User(str(user['_id']), user['username'])
-        user_obj.first_name = user.get('first_name', '')
+        user_obj = User(
+            id_=str(user['_id']),
+            username=user['username'],
+            role=user.get('role', 'user'),
+            first_name=user.get('first_name', '')
+        )
+        # Asegúrate de definir allowed_robots
+        user_obj.allowed_robots = user.get('allowed_robots', [])
         return user_obj
     return None
+
 
 @app.route('/log_time', methods=['POST'])
 @login_required
@@ -424,7 +393,6 @@ def log_time():
     page = data.get('page')
     elapsed_time = data.get('elapsed_time')
 
-    # Guardar en MongoDB
     db['user_activity'].insert_one({
         "user_id": ObjectId(current_user.id),
         "page": page,
@@ -432,6 +400,71 @@ def log_time():
         "timestamp": datetime.now()
     })
     return jsonify({"status": "success"}), 200
+
+@app.route('/admin_only')
+@login_required
+@role_required('admin')
+def admin_only_view():
+    return "Esta ruta solo la ve un admin"
+@app.route('/manage_users', methods=['GET', 'POST'])
+@login_required
+@role_required('admin')
+def manage_users():
+    # Obtener todos los usuarios excepto el admin actual (opcional).
+    # Suponiendo que todos los usuarios están en la colección `users`
+    all_users = list(users_collection.find({}))
+    return render_template('manage_users.html', all_users=all_users)
+@app.route('/enable_robot', methods=['POST'])
+@login_required
+@role_required('admin')
+def enable_robot():
+    user_id = request.form.get('user_id')
+    robot = request.form.get('robot')
+
+    user = users_collection.find_one({"_id": ObjectId(user_id)})
+    if user:
+        allowed = user.get('allowed_robots', [])
+        if robot not in allowed:
+            allowed.append(robot)
+            users_collection.update_one({"_id": ObjectId(user_id)}, {"$set": {"allowed_robots": allowed}})
+        flash("Robot enabled for the user.")
+    return redirect(url_for('manage_users'))
+
+@app.route('/disable_robot', methods=['POST'])
+@login_required
+@role_required('admin')
+def disable_robot():
+    user_id = request.form.get('user_id')
+    robot = request.form.get('robot')
+
+    user = users_collection.find_one({"_id": ObjectId(user_id)})
+    if user:
+        allowed = user.get('allowed_robots', [])
+        if robot in allowed:
+            allowed.remove(robot)
+            users_collection.update_one({"_id": ObjectId(user_id)}, {"$set": {"allowed_robots": allowed}})
+        flash("Robot disabled for the user.")
+    return redirect(url_for('manage_users'))
+@app.route('/update_user_robots', methods=['POST'])
+@login_required
+@role_required('admin')
+def update_user_robots():
+    user_id = request.form.get('user_id')
+    allowed_robots = request.form.getlist('allowed_robots')  # obtener la lista de robots seleccionados
+
+    # Actualizar el usuario en la base de datos
+    users_collection.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"allowed_robots": allowed_robots}}
+    )
+
+    flash("User robots updated!")
+    return redirect(url_for('manage_users'))
+@app.route('/get_user_allowed_robots')
+@login_required
+def get_user_allowed_robots():
+    return jsonify({"allowed_robots": current_user.allowed_robots})
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8065, debug=True)
