@@ -164,5 +164,26 @@
         // Por defecto, activo el dashboard
         setActiveLink('dashboard-link');
     </script>
+    <script>
+        let startTime = new Date();
+    
+        window.addEventListener("beforeunload", function () {
+            let endTime = new Date();
+            let elapsedTime = Math.round((endTime - startTime) / 1000); // Tiempo en segundos
+    
+            fetch('/log_time', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}' // Si usas CSRF
+                },
+                body: JSON.stringify({
+                    page: window.location.pathname,
+                    elapsed_time: elapsedTime
+                })
+            });
+        });
+    </script>
+    
 </body>
 </html>

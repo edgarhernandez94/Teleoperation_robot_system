@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <!-- Íconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+
     <style>
         body {
             background-color: #f5f5f5;
@@ -65,114 +67,103 @@
 </head>
 <body>
 
-<div class="container-fluid">
-    <!-- Row 1: Greeting & Next Appointment -->
-    <div class="row">
-        <div class="col-12 col-lg-8">
-            <div class="card p-4">
+    <div class="container-fluid mt-4">
+        <!-- Header Row -->
+        <div class="row align-items-center mb-4">
+            <div class="col-12 col-md-8">
                 <h2>Hi {{ current_user.first_name }}, what would you like to do today?</h2>
-                <div class="action-buttons mt-3">
-                    <button class="btn btn-outline-primary" data-toggle="modal" data-target="#performanceModal">
-                        <i class="fas fa-chart-line mr-1"></i> Review task performance
-                    </button>                    
-                    <!-- Modal Performance -->
-                    <div class="modal fade" id="performanceModal" tabindex="-1" role="dialog" aria-labelledby="performanceModalLabel" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-centered" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                            <h5 class="modal-title">{{ current_user.first_name }}'s Task Performance</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                            </div>
-                            <div class="modal-body">
-                            <!-- Estadísticas generales -->
-                            <p><strong>Total Tasks:</strong> {{ total_tasks }}</p>
-                            <p><strong>Success Rate:</strong> {{ success_rate|round(2) }}%</p>
-                            <p><strong>Average Duration per Task:</strong> {{ avg_duration|round(2) }} minutes</p>
-                            
-                            <!-- Gráfico de tareas por robot -->
-                            <h6 class="mt-3">Tasks by Robot</h6>
-                            <canvas id="tasksByRobotChart"></canvas>
-                            </div>
-                        </div>
+            </div>
+            <div class="col-12 col-md-4 text-md-right text-center">
+                <h5>Next Session: {{ next_date_str if next_date_str != "No upcoming sessions" else "No upcoming sessions" }}</h5>
+            </div>
+        </div>
+    
+        <!-- Main Row -->
+        <div class="row">
+            <!-- Left Content (Sessions and Robot Cards) -->
+            <div class="col-lg-8">
+                <!-- Fila de Sessions (Arm, Pepper, Dog) -->
+                <div class="row mb-4">
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="card text-center p-3 animate__animated animate__fadeInLeft">
+                            <h5><i class="fas fa-robot text-primary"></i> Arm Robot</h5>
+                            <canvas id="armRobotChart" style="width: 100%; height: 150px;"></canvas>
+                            <p>Sessions: <strong>{{ arm_count }}</strong></p>
                         </div>
                     </div>
-                    <button class="btn btn-outline-primary" onclick="window.parent.loadRobot('/reservations')">
-                        <i class="fas fa-calendar-check mr-1"></i> Schedule a session
-                    </button>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-lg-4">
-            <div class="card text-center p-4">
-                <h5>Next Session Appointment</h5>
-                {% if next_date_str == "No upcoming sessions" %}
-                    <p><strong>{{ next_date_str }}</strong></p>
-                {% else %}
-                    <p><strong>{{ next_date_str }}</strong></p>
-                    <p>{{ next_robot|replace('-', ' ')|title }}</p>
-                    <i class="fas fa-clock fa-2x" style="color:#007bff;"></i>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Row 2: Robots Cards & Usage Chart -->
-    <div class="row">
-        <div class="col-12 col-lg-8">
-            <div class="d-flex flex-wrap justify-content-center">
-                <!-- Arm Robot Card -->
-                <div class="card robot-card m-2" style="width: 250px;">
-                    <img src="/static/assets/armrobot.jpg" alt="Arm Robot">
-                    <div class="robot-card-body">
-                        <h5 class="robot-card-title">Arm Robot</h5>
-                        <p>Control of the robotic arm.</p>
-                        <a href="#" class="btn btn-primary" onclick="window.parent.loadRobot('http://14.10.2.192:8069/arm%20controll')">Access</a>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="card text-center p-3 animate__animated animate__fadeInUp">
+                            <h5><i class="fas fa-user-astronaut text-success"></i> Pepper Robot</h5>
+                            <canvas id="pepperRobotChart" style="width: 100%; height: 150px;"></canvas>
+                            <p>Sessions: <strong>{{ pepper_count }}</strong></p>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="card text-center p-3 animate__animated animate__fadeInRight">
+                            <h5><i class="fas fa-dog text-warning"></i> Dog Robot</h5>
+                            <canvas id="dogRobotChart" style="width: 100%; height: 150px;"></canvas>
+                            <p>Sessions: <strong>{{ dog_count }}</strong></p>
+                        </div>
                     </div>
                 </div>
-
-                <!-- Pepper Robot Card -->
-                <div class="card robot-card m-2" style="width: 250px;">
-                    <img src="/static/assets/pepper.jpg" alt="Pepper Robot">
-                    <div class="robot-card-body">
-                        <h5 class="robot-card-title">Pepper Robot Avatar</h5>
-                        <p>Control and monitoring of the Pepper Robot Avatar.</p>
-                        <a href="#" class="btn btn-primary" onclick="window.parent.loadRobot('http://14.10.2.192:8070')">Access</a>
+    
+                <!-- Fila de Robot Access Cards -->
+                <div class="row mb-4">
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="card robot-card animate__animated animate__fadeInLeft">
+                            <img src="/static/assets/armrobot.jpg" alt="Arm Robot" class="card-img-top" style="object-fit: cover; height: 200px;">
+                            <div class="card-body text-center">
+                                <h5>Arm Robot</h5>
+                                <p>Control the robotic arm</p>
+                                <a href="http://14.10.2.192:8069/arm%20controll" class="btn btn-primary">Access</a>
+                            </div>
+                        </div>
                     </div>
-                </div>
-
-                <!-- Dog Robot Card -->
-                <div class="card robot-card m-2" style="width: 250px;">
-                    <img src="/static/assets/go2.png" alt="Dog Robot">
-                    <div class="robot-card-body">
-                        <h5 class="robot-card-title">Dog Robot</h5>
-                        <p>Control and monitoring of the Dog Robot.</p>
-                        <a href="#" class="btn btn-primary" onclick="window.parent.loadRobot('http://14.10.2.192:8066')">Access</a>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="card robot-card animate__animated animate__fadeInUp">
+                            <img src="/static/assets/pepper.jpg" alt="Pepper Robot" class="card-img-top" style="object-fit: cover; height: 200px;">
+                            <div class="card-body text-center">
+                                <h5>Pepper Robot</h5>
+                                <p>Control Pepper Avatar</p>
+                                <a href="http://14.10.2.192:8070" class="btn btn-primary">Access</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card robot-card col-lg-4 col-md-6 mb-3 animate__animated animate__fadeInRight">
+                        <img src="/static/assets/go2.png" alt="Dog Robot" class="card-img-top" style="object-fit: cover; height: 200px;">
+                        <div class="card-body text-center">
+                            <h5>Dog Robot</h5>
+                            <p>Control the Dog Robot</p>
+                            <a href="http://14.10.2.192:8066" class="btn btn-primary">Access</a>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Uso del Robot (Gráfico) y Sessions in History -->
-        <div class="col-12 col-lg-4">
-            <div class="card p-4 text-center">
-                <h5>Robot Usage</h5>
-                <div class="chart-wrapper mx-auto">
-                    <canvas id="usageChart"></canvas>
+    
+            <!-- Right Content (Robot Usage and History) -->
+            <div class="col-lg-4">
+                <div class="card mb-4 animate__animated animate__fadeInRight">
+                    <h5 class="text-center mt-3">Robot Usage</h5>
+                    <div class="chart-wrapper mx-auto">
+                        <canvas id="usageChart"></canvas>
+                    </div>
                 </div>
-                <div class="session-history mt-3">
-                    <!-- Aquí haremos que las sessions sean reales -->
-                    <p><strong>Sessions in History:</strong><br>
-                        Arm: {{ arm_count }} sessions ({{ arm_usage/60 if arm_usage else 0 }} hrs) <br>
-                        Pepper: {{ pepper_count }} sessions ({{ pepper_usage/60 if pepper_usage else 0 }} hrs) <br>
-                        Dog: {{ dog_count }} sessions ({{ dog_usage/60 if dog_usage else 0 }} hrs)</p>                       
+                <div class="card p-4 animate__animated animate__fadeInRight">
+                    <h5 class="text-center">Sessions in History</h5>
+                    <ul class="list-unstyled text-center">
+                        <li><strong>Arm:</strong> {{ arm_count }} sessions</li>
+                        <li><strong>Pepper:</strong> {{ pepper_count }} sessions</li>
+                        <li><strong>Dog:</strong> {{ dog_count }} sessions</li>
+                    </ul>
                 </div>
             </div>
         </div>
     </div>
-</div>
-
+    
+    
+        
+        
+    
 <!-- Scripts -->
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -230,5 +221,65 @@
     }
   });
 </script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Gráfica de Línea para Arm Robot
+    const armSessionsData = {{ arm_sessions_count|tojson }};
+    new Chart(document.getElementById('armRobotChart'), {
+        type: 'line',
+        data: {
+            labels: Object.keys(armSessionsData), // Fechas
+            datasets: [{
+                label: 'Arm Robot Sessions',
+                data: Object.values(armSessionsData), // Número de sesiones
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: true }
+            }
+        }
+    });
+
+    // Gráfica de Línea para Pepper Robot
+    const pepperSessionsData = {{ pepper_sessions_count|tojson }};
+    new Chart(document.getElementById('pepperRobotChart'), {
+        type: 'line',
+        data: {
+            labels: Object.keys(pepperSessionsData),
+            datasets: [{
+                label: 'Pepper Robot Sessions',
+                data: Object.values(pepperSessionsData),
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                fill: true
+            }]
+        }
+    });
+
+    // Gráfica de Línea para Dog Robot
+    const dogSessionsData = {{ dog_sessions_count|tojson }};
+    new Chart(document.getElementById('dogRobotChart'), {
+        type: 'line',
+        data: {
+            labels: Object.keys(dogSessionsData),
+            datasets: [{
+                label: 'Dog Robot Sessions',
+                data: Object.values(dogSessionsData),
+                borderColor: '#ffc107',
+                backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                fill: true
+            }]
+        }
+    });
+</script>
+
+
+
 </body>
 </html>

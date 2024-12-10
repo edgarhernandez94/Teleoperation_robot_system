@@ -8,6 +8,8 @@ from bson.objectid import ObjectId
 from flask import jsonify
 from datetime import datetime, timedelta
 from bson.objectid import ObjectId
+from collections import Counter
+
 # Conexión a MongoDB
 client = MongoClient("mongodb://localhost:27017/")
 db = client['teleoperation_system']  # Nombre de la base de datos
@@ -147,10 +149,17 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+from collections import Counter
+
+from collections import Counter
+
+from collections import Counter
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
     now = datetime.now()
+    # Obtener la próxima reserva
     next_reservation = reservations_collection.find_one({
         "user_id": ObjectId(current_user.id),
         "start_datetime": {"$gte": now}
@@ -162,8 +171,27 @@ def dashboard():
     else:
         next_date_str = "No upcoming sessions"
         next_robot = ""
-    
-    # pipeline para sesiones y duración
+
+    # Obtener todas las sesiones del usuario actual
+    sessions = list(reservations_collection.find({"user_id": ObjectId(current_user.id)}))
+
+    # Agrupar sesiones por robot y fecha
+    def get_sessions_by_robot(robot_name):
+        return [s["start_datetime"].strftime("%Y-%m-%d") for s in sessions if s["robot"] == robot_name]
+
+    arm_sessions = get_sessions_by_robot("arm-robot")
+    pepper_sessions = get_sessions_by_robot("pepper-avatar")
+    dog_sessions = get_sessions_by_robot("dog-robot")
+
+    # Contar sesiones por fecha
+    def count_sessions_by_date(sessions):
+        return Counter(sessions)
+
+    arm_sessions_count = dict(count_sessions_by_date(arm_sessions) or {})
+    pepper_sessions_count = dict(count_sessions_by_date(pepper_sessions) or {})
+    dog_sessions_count = dict(count_sessions_by_date(dog_sessions) or {})
+
+    # Continuar con la lógica existente para el uso y duración
     pipeline = [
         {"$match": {"user_id": ObjectId(current_user.id)}},
         {"$group": {"_id": "$robot", "total_duration": {"$sum": "$duration"}, "count_sessions": {"$sum": 1}}}
@@ -181,7 +209,7 @@ def dashboard():
         usage_map[doc['_id']]['duration'] = doc['total_duration']
         usage_map[doc['_id']]['count'] = doc['count_sessions']
 
-    # Pasar arm_usage, pepper_usage, dog_usage como duración
+    # Asignar datos para cada robot
     arm_usage = usage_map["arm-robot"]["duration"]
     pepper_usage = usage_map["pepper-avatar"]["duration"]
     dog_usage = usage_map["dog-robot"]["duration"]
@@ -189,47 +217,26 @@ def dashboard():
     arm_count = usage_map["arm-robot"]["count"]
     pepper_count = usage_map["pepper-avatar"]["count"]
     dog_count = usage_map["dog-robot"]["count"]
-     # Calcular performance
-    tasks_data = list(db['tasks'].find({"user_id": ObjectId(current_user.id)}))
-
-    # Métricas
-    total_tasks = len(tasks_data)
-    if total_tasks > 0:
-        success_count = sum(1 for t in tasks_data if t.get('success'))
-        success_rate = (success_count / total_tasks) * 100
-        avg_duration = sum(t.get('duration', 0) for t in tasks_data) / total_tasks
-    else:
-        success_rate = 0
-        avg_duration = 0
-
-    # Contar tareas por robot
     robot_tasks_count = {
-        "Arm Robot": 0,
-        "Pepper Robot Avatar": 0,
-        "Dog Robot": 0
-    }
-    for t in tasks_data:
-        r = t.get('robot', '')
-        if r == 'arm-robot':
-            robot_tasks_count["Arm Robot"] += 1
-        elif r == 'pepper-avatar':
-            robot_tasks_count["Pepper Robot Avatar"] += 1
-        elif r == 'dog-robot':
-            robot_tasks_count["Dog Robot"] += 1
-
-    return render_template('dashboard.html',
-                        next_date_str=next_date_str,
-                        next_robot=next_robot,
-                        arm_usage=arm_usage,
-                        pepper_usage=pepper_usage,
-                        dog_usage=dog_usage,
-                        arm_count=arm_count,
-                        pepper_count=pepper_count,
-                        dog_count=dog_count,
-                        total_tasks=total_tasks,
-                        success_rate=success_rate,
-                        avg_duration=avg_duration,
-                        robot_tasks_count=robot_tasks_count)
+    "Arm Robot": 5,
+    "Pepper Robot Avatar": 3,
+    "Dog Robot": 2
+}
+    return render_template(
+        'dashboard.html',
+        next_date_str=next_date_str,
+        next_robot=next_robot,
+        arm_usage=arm_usage,
+        pepper_usage=pepper_usage,
+        dog_usage=dog_usage,
+        arm_count=arm_count,
+        pepper_count=pepper_count,
+        dog_count=dog_count,
+        arm_sessions_count=arm_sessions_count,  # Contar por fecha
+        pepper_sessions_count=pepper_sessions_count,
+        dog_sessions_count=dog_sessions_count,
+        robot_tasks_count=robot_tasks_count,  # Add this line
+        )
 
 @app.route('/pepper')
 @login_required
@@ -409,5 +416,22 @@ def load_user(user_id):
         user_obj.first_name = user.get('first_name', '')
         return user_obj
     return None
+
+@app.route('/log_time', methods=['POST'])
+@login_required
+def log_time():
+    data = request.get_json()
+    page = data.get('page')
+    elapsed_time = data.get('elapsed_time')
+
+    # Guardar en MongoDB
+    db['user_activity'].insert_one({
+        "user_id": ObjectId(current_user.id),
+        "page": page,
+        "elapsed_time": elapsed_time,
+        "timestamp": datetime.now()
+    })
+    return jsonify({"status": "success"}), 200
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8065, debug=True)
