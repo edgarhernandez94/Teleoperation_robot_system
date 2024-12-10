@@ -189,6 +189,33 @@ def dashboard():
     arm_count = usage_map["arm-robot"]["count"]
     pepper_count = usage_map["pepper-avatar"]["count"]
     dog_count = usage_map["dog-robot"]["count"]
+     # Calcular performance
+    tasks_data = list(db['tasks'].find({"user_id": ObjectId(current_user.id)}))
+
+    # Métricas
+    total_tasks = len(tasks_data)
+    if total_tasks > 0:
+        success_count = sum(1 for t in tasks_data if t.get('success'))
+        success_rate = (success_count / total_tasks) * 100
+        avg_duration = sum(t.get('duration', 0) for t in tasks_data) / total_tasks
+    else:
+        success_rate = 0
+        avg_duration = 0
+
+    # Contar tareas por robot
+    robot_tasks_count = {
+        "Arm Robot": 0,
+        "Pepper Robot Avatar": 0,
+        "Dog Robot": 0
+    }
+    for t in tasks_data:
+        r = t.get('robot', '')
+        if r == 'arm-robot':
+            robot_tasks_count["Arm Robot"] += 1
+        elif r == 'pepper-avatar':
+            robot_tasks_count["Pepper Robot Avatar"] += 1
+        elif r == 'dog-robot':
+            robot_tasks_count["Dog Robot"] += 1
 
     return render_template('dashboard.html',
                         next_date_str=next_date_str,
@@ -198,10 +225,11 @@ def dashboard():
                         dog_usage=dog_usage,
                         arm_count=arm_count,
                         pepper_count=pepper_count,
-                        dog_count=dog_count)
-
-
-
+                        dog_count=dog_count,
+                        total_tasks=total_tasks,
+                        success_rate=success_rate,
+                        avg_duration=avg_duration,
+                        robot_tasks_count=robot_tasks_count)
 
 @app.route('/pepper')
 @login_required
@@ -228,10 +256,21 @@ def reservations():
     upcoming_reservations = [r for r in user_reservations if r['start_datetime'] >= now]
     past_reservations = [r for r in user_reservations if r['start_datetime'] < now]
 
-    return render_template('reservations.html',
-                           active_page='reservations',
-                           upcoming_reservations=upcoming_reservations,
-                           past_reservations=past_reservations)
+    # Si usas check_availability, también asegúrate de definir occupied_spots, checked_robot y checked_date
+    # antes de renderizar, por ejemplo:
+    occupied_spots = []
+    checked_robot = None
+    checked_date = None
+
+    return render_template(
+        'reservations.html',
+        active_page='reservations',
+        upcoming_reservations=upcoming_reservations,
+        past_reservations=past_reservations,
+        occupied_spots=occupied_spots,
+        checked_robot=checked_robot,
+        checked_date=checked_date
+    )
 
 
 @app.route('/make_reservation', methods=['POST'])
@@ -242,11 +281,10 @@ def make_reservation():
     time_str = request.form['time']
     duration_str = request.form['duration']
 
-    # Convertir date y time a datetime
-    # Supongamos que date viene en formato 'YYYY-MM-DD' y time en 'HH:MM'
+    # Convertir fecha/hora
     start = datetime.strptime(f"{date_str} {time_str}", '%Y-%m-%d %H:%M')
-    
-    # Determinar la duración en minutos
+
+    # Determinar duración en minutos
     if duration_str == '30 minutes':
         dur_minutes = 30
     elif duration_str == '1 hour':
@@ -254,16 +292,109 @@ def make_reservation():
     elif duration_str == '2 hours':
         dur_minutes = 120
     else:
-        dur_minutes = 30  # Por defecto
+        dur_minutes = 30
+
+    end = start + timedelta(minutes=dur_minutes)
+
+    # Verificar si ya existe una reserva para ese robot que se solape
+    # Criterio: buscar cualquier reserva del mismo robot donde:
+    # existing_start < end AND existing_end > start
+    existing = reservations_collection.find_one({
+        "robot": robot,
+        "$or": [
+            {
+                # Caso 1: Inicio existente antes del fin nuevo y fin existente después del inicio nuevo
+                "start_datetime": {"$lt": end}
+            },
+            # Podemos revisar si hace falta más condiciones
+        ]
+    })
+
+    # Necesitamos filtrar aún más las reservas encontradas:
+    # Mejor usar un pipeline para filtrar con más detalle o hacerlo en Python:
+    # Usamos el match inicial, luego filtramos en Python si existe realmente solapamiento.
+    # Para ello, tendremos que calcular el end de la reserva existente:
     
+    overlapping_reservation = None
+    for res in reservations_collection.find({"robot": robot}):
+        existing_start = res['start_datetime']
+        existing_end = existing_start + timedelta(minutes=res['duration'])
+
+        # Verificar solapamiento:
+        if existing_start < end and existing_end > start:
+            # Hay solapamiento
+            overlapping_reservation = res
+            break
+
+    if overlapping_reservation:
+        flash("This robot is already reserved at this time. Please choose another time or robot.")
+        return redirect(url_for('reservations'))
+
+    # Si no hay solapamiento, insertar la nueva reserva
     reservation_data = {
         "user_id": ObjectId(current_user.id),
         "robot": robot,
         "start_datetime": start,
         "duration": dur_minutes
     }
+
     reservations_collection.insert_one(reservation_data)
     flash("Reservation successfully made!")
+    return redirect(url_for('reservations'))
+@app.route('/check_availability', methods=['POST'])
+@login_required
+def check_availability():
+    robot = request.form['robot']
+    date_str = request.form['date']
+
+    if not date_str or not robot:
+        flash("Please select a robot and a date.")
+        return redirect(url_for('reservations'))
+
+    # Obtener todas las reservas del usuario para mantener consistencia en la plantilla
+    now = datetime.now()
+    user_reservations = list(reservations_collection.find({"user_id": ObjectId(current_user.id)}))
+    user_reservations.sort(key=lambda r: r['start_datetime'])
+    upcoming_reservations = [r for r in user_reservations if r['start_datetime'] >= now]
+    past_reservations = [r for r in user_reservations if r['start_datetime'] < now]
+
+    # Filtrar reservas del robot en la fecha dada (para mostrar ocupadas)
+    date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+    next_day = date_obj + timedelta(days=1)
+    query = {
+        "robot": robot,
+        "start_datetime": {"$gte": date_obj, "$lt": next_day}
+    }
+    daily_reservations = list(reservations_collection.find(query))
+
+    occupied_spots = []
+    for res in daily_reservations:
+        start = res['start_datetime']
+        end = start + timedelta(minutes=res['duration'])
+        occupied_spots.append(f"{start.strftime('%H:%M')} - {end.strftime('%H:%M')}")
+
+    return render_template('reservations.html',
+                           active_page='reservations',
+                           upcoming_reservations=upcoming_reservations,
+                           past_reservations=past_reservations,
+                           occupied_spots=occupied_spots,
+                           checked_robot=robot,
+                           checked_date=date_str)
+
+@app.route('/delete_reservation/<reservation_id>', methods=['POST'])
+@login_required
+def delete_reservation(reservation_id):
+    from bson.objectid import ObjectId
+    
+    # Buscamos la reserva para asegurarnos que pertenece al usuario actual
+    res = reservations_collection.find_one({"_id": ObjectId(reservation_id), "user_id": ObjectId(current_user.id)})
+    if not res:
+        flash("Reservation not found or does not belong to you.")
+        return redirect(url_for('reservations'))
+    
+    # Eliminar la reserva
+    reservations_collection.delete_one({"_id": ObjectId(reservation_id)})
+    flash("Reservation deleted successfully!")
     return redirect(url_for('reservations'))
 
 @app.route('/video_feed3')
