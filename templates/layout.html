@@ -275,7 +275,75 @@
         });
     }
     </script>
-    
+    <script>
+        let currentSection = 'dashboard';  // Por defecto, al inicio
+        let sectionStartTime = new Date();
+        
+        function loadDashboard() {
+            logSectionTime(); // Registrar el tiempo de la sección actual antes de cambiar
+            currentSection = 'dashboard';
+            sectionStartTime = new Date();
+            
+            const iframe = document.getElementById('robot-frame');
+            iframe.src = '/dashboard';
+            setActiveLink('dashboard-link');
+        }
+        
+        function loadRobot(url) {
+            logSectionTime(); // Registrar el tiempo de la sección actual antes de cambiar
+            
+            // Determinar la sección en base a la URL
+            if (url.includes('8069')) {
+              currentSection = 'arm-robot';
+            } else if (url.includes('8070')) {
+              currentSection = 'pepper-avatar';
+            } else if (url.includes('8066')) {
+              currentSection = 'dog-robot';
+            } else if (url.includes('reservations')) {
+              currentSection = 'reservations';
+            } else if (url.includes('manage_users')) {
+              currentSection = 'manage_users';
+            } else {
+              currentSection = 'unknown';
+            }
+        
+            sectionStartTime = new Date();
+            
+            const iframe = document.getElementById('robot-frame');
+            iframe.src = url;
+            
+            const urlToLink = {
+                '/reservations': 'reservations-link',
+                'http://14.10.2.192:8069/arm%20controll': 'arm-robot-link',
+                'http://14.10.2.192:8070': 'pepper-avatar-link',
+                'http://14.10.2.192:8066': 'dog-robot-link',
+                '/manage_users': 'manage-users-link'
+            };
+            if (urlToLink[url]) setActiveLink(urlToLink[url]);
+        }
+        
+        function logSectionTime() {
+            let endTime = new Date();
+            let elapsedTime = Math.round((endTime - sectionStartTime) / 1000); // en segundos
+            if (elapsedTime > 0) {
+                fetch('/log_time', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        page: currentSection, 
+                        elapsed_time: elapsedTime
+                    })
+                });
+            }
+        }
+        
+        window.addEventListener("beforeunload", function () {
+            logSectionTime();
+        });
+        </script>
+        
             
 </body>
 </html>

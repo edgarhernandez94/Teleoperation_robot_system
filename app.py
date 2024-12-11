@@ -464,6 +464,44 @@ def update_user_robots():
 @login_required
 def get_user_allowed_robots():
     return jsonify({"allowed_robots": current_user.allowed_robots})
+@app.route('/delete_user', methods=['POST'])
+@login_required
+@role_required('admin')
+def delete_user():
+    user_id = request.form.get('user_id')
+    
+    # Evitar que el admin se elimine a sí mismo (opcional)
+    if str(current_user.id) == user_id:
+        flash("You cannot delete yourself.")
+        return redirect(url_for('manage_users'))
+
+    # Verificar que el usuario existe
+    user_to_delete = users_collection.find_one({"_id": ObjectId(user_id)})
+    if not user_to_delete:
+        flash("User not found.")
+        return redirect(url_for('manage_users'))
+
+    # Eliminar el usuario
+    users_collection.delete_one({"_id": ObjectId(user_id)})
+    flash("User deleted successfully.")
+
+    # Después de eliminar, volver a manage_users
+    return redirect(url_for('manage_users'))
+
+
+@app.route('/request_trial')
+@login_required
+def request_trial():
+    robot = request.args.get('robot')
+    # Aquí guardas la solicitud en la base de datos, por ejemplo:
+    db['trial_requests'].insert_one({
+        "user_id": ObjectId(current_user.id),
+        "robot": robot,
+        "timestamp": datetime.now(),
+        "status": "pending"
+    })
+    flash("Your trial request has been sent to the admin.")
+    return redirect(url_for('dashboard'))
 
 
 if __name__ == '__main__':

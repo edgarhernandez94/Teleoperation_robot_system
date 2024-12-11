@@ -108,9 +108,10 @@
                 </div>
     
                 <!-- Fila de Robot Access Cards -->
-                <div class="row mb-4">
-                    <div class="col-lg-4 col-md-6 mb-3">
-                        {% if "arm-robot" in current_user.allowed_robots %}
+            <div class="row mb-4">
+                <!-- Arm Robot -->
+                <div class="col-lg-4 col-md-6 mb-3">
+                    {% if "arm-robot" in current_user.allowed_robots %}
                     <div class="card robot-card animate__animated animate__fadeInLeft">
                         <img src="/static/assets/armrobot.jpg" alt="Arm Robot" class="card-img-top" style="object-fit: cover; height: 200px;">
                         <div class="card-body text-center">
@@ -119,11 +120,21 @@
                             <a href="http://14.10.2.192:8069/arm%20controll" class="btn btn-primary">Access</a>
                         </div>
                     </div>
-                    {% endif %}
-
+                    {% else %}
+                    <div class="card robot-card animate__animated animate__fadeInLeft">
+                        <img src="/static/assets/armrobot.jpg" alt="Arm Robot" class="card-img-top" style="object-fit: cover; height: 200px;">
+                        <div class="card-body text-center">
+                            <h5>Arm Robot</h5>
+                            <p>You don't have access to the Arm Robot yet.</p>
+                            <a href="{{ url_for('request_trial', robot='arm-robot') }}" class="btn btn-warning">Request a Trial</a>
+                        </div>
                     </div>
-                    <div class="col-lg-4 col-md-6 mb-3">
-                        {% if "pepper-avatar" in current_user.allowed_robots %}
+                    {% endif %}
+                </div>
+
+                <!-- Pepper Robot -->
+                <div class="col-lg-4 col-md-6 mb-3">
+                    {% if "pepper-avatar" in current_user.allowed_robots %}
                     <div class="card robot-card animate__animated animate__fadeInUp">
                         <img src="/static/assets/pepper.jpg" alt="Pepper Robot" class="card-img-top" style="object-fit: cover; height: 200px;">
                         <div class="card-body text-center">
@@ -132,11 +143,21 @@
                             <a href="http://14.10.2.192:8070" class="btn btn-primary">Access</a>
                         </div>
                     </div>
-                    {% endif %}
-
+                    {% else %}
+                    <div class="card robot-card animate__animated animate__fadeInUp">
+                        <img src="/static/assets/pepper.jpg" alt="Pepper Robot" class="card-img-top" style="object-fit: cover; height: 200px;">
+                        <div class="card-body text-center">
+                            <h5>Pepper Robot</h5>
+                            <p>You don't have access to the Pepper Robot yet.</p>
+                            <a href="{{ url_for('request_trial', robot='pepper-avatar') }}" class="btn btn-warning">Request a Trial</a>
+                        </div>
                     </div>
-                    <div class="col-lg-4 col-md-6 mb-3">
-                        {% if "dog-robot" in current_user.allowed_robots %}
+                    {% endif %}
+                </div>
+
+                <!-- Dog Robot -->
+                <div class="col-lg-4 col-md-6 mb-3">
+                    {% if "dog-robot" in current_user.allowed_robots %}
                     <div class="card robot-card animate__animated animate__fadeInUp">
                         <img src="/static/assets/go2.png" alt="Robot dog" class="card-img-top" style="object-fit: cover; height: 200px;">
                         <div class="card-body text-center">
@@ -145,10 +166,19 @@
                             <a href="http://14.10.2.192:8066" class="btn btn-primary">Access</a>
                         </div>
                     </div>
-                    {% endif %}
-
+                    {% else %}
+                    <div class="card robot-card animate__animated animate__fadeInUp">
+                        <img src="/static/assets/go2.png" alt="Robot dog" class="card-img-top" style="object-fit: cover; height: 200px;">
+                        <div class="card-body text-center">
+                            <h5>Dog Robot</h5>
+                            <p>You don't have access to the Dog Robot yet.</p>
+                            <a href="{{ url_for('request_trial', robot='dog-robot') }}" class="btn btn-warning">Request a Trial</a>
+                        </div>
                     </div>
+                    {% endif %}
                 </div>
+            </div>
+
             </div>
     
             <!-- Right Content (Robot Usage and History) -->
